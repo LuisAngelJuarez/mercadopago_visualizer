@@ -14,36 +14,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _tokenController = TextEditingController();
   final _maxAmountController = TextEditingController();
   bool _hasToken = false;
+  double? _initialMaxAmount;
+
+  static const String _maskedToken = '********************************';
 
   @override
   void initState() {
     super.initState();
-    _checkExistingToken();
+    _loadExistingSettings();
   }
 
-  Future<void> _checkExistingToken() async {
+  Future<void> _loadExistingSettings() async {
     final hasTokenResult = await widget.storageService.hasToken();
+    final existingMaxAmount = await widget.storageService.getMaxAmount();
+    if (!mounted) return;
     setState(() {
       _hasToken = hasTokenResult;
       // We don't load the real token into the controller to prevent visualization
       if (_hasToken) {
-        _tokenController.text = '********************************'; // Fake masked token
+        _tokenController.text = _maskedToken; // Fake masked token
+      }
+
+      _initialMaxAmount = existingMaxAmount;
+      if (existingMaxAmount != null) {
+        _maxAmountController.text = existingMaxAmount.toString();
       }
     });
   }
 
+  bool _isMaskedTokenInput(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    if (trimmed == _maskedToken) return true;
+    return RegExp(r'^\*+$').hasMatch(trimmed);
+  }
+
+  bool _doubleEquals(double? a, double? b) {
+    if (a == null || b == null) return a == b;
+    return (a - b).abs() < 1e-9;
+  }
+
   Future<void> _saveSettings() async {
-    // Save Max Amount
+    // Parse Max Amount
     final maxAmountText = _maxAmountController.text.trim();
     double? maxAmount;
     if (maxAmountText.isNotEmpty) {
       maxAmount = double.tryParse(maxAmountText);
+      if (maxAmount == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor ingresa un monto válido')),
+        );
+        return;
+      }
     }
-    await widget.storageService.saveMaxAmount(maxAmount);
+
+    final maxAmountChanged = !_doubleEquals(_initialMaxAmount, maxAmount);
 
     // Save Token if changed
     final inputText = _tokenController.text;
-    if (inputText.isNotEmpty && !inputText.contains('****************')) {
+    final isMaskedToken = _isMaskedTokenInput(inputText);
+
+    // Requirement: if max amount was modified, user must enter the full token
+    if (maxAmountChanged && (inputText.trim().isEmpty || isMaskedToken)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Para modificar el monto máximo visible, ingresa el token completo y guarda nuevamente.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (inputText.isNotEmpty && !isMaskedToken) {
       // Sanitize token: remove quotes, Bearer prefix, and trim.
       final sanitizedToken = inputText
           .replaceAll('"', '')
@@ -60,16 +105,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       await widget.storageService.saveToken(sanitizedToken);
+
+      // Save Max Amount (only after token validation when required)
+      await widget.storageService.saveMaxAmount(maxAmount);
+      _initialMaxAmount = maxAmount;
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configuración guardada correctamente')),
       );
       setState(() {
         _hasToken = true;
-        _tokenController.text = '********************************';
+        _tokenController.text = _maskedToken;
       });
-    } else if (inputText.contains('****************')) {
-      // Token wasn't edited, only other settings were saved
+    } else if (isMaskedToken) {
+      // Token wasn't edited, only other settings were saved (allowed only if max amount didn't change)
+      await widget.storageService.saveMaxAmount(maxAmount);
+      _initialMaxAmount = maxAmount;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configuración actualizada')),
@@ -121,6 +173,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             const Text(
               'Oculta por seguridad transacciones o abonos que superen este monto (opcional).',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Nota: si modificas este monto, deberás volver a ingresar el token completo para guardar.',
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 16),
