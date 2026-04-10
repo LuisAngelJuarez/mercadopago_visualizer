@@ -41,10 +41,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         throw Exception('No hay token configurado. Ve a configuración.');
       }
 
+      final maxAmount = await widget.storageService.getMaxAmount();
       final results = await widget.apiService.getTransactions(token);
       
       final now = DateTime.now();
       final todayResults = results.where((tx) {
+        // Filter by Max Amount (Security feature)
+        if (maxAmount != null) {
+          final amount = tx['transaction_amount'];
+          if (amount != null && amount > maxAmount) {
+            return false;
+          }
+        }
+
+        // Filter by today's date
         final dateStr = tx['date_created'] as String?;
         if (dateStr == null) return false;
         try {

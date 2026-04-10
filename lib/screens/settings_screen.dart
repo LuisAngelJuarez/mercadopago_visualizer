@@ -12,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _tokenController = TextEditingController();
+  final _maxAmountController = TextEditingController();
   bool _hasToken = false;
 
   @override
@@ -31,8 +32,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _saveToken() async {
-    // Only save if it's not the fake masked token
+  Future<void> _saveSettings() async {
+    // Save Max Amount
+    final maxAmountText = _maxAmountController.text.trim();
+    double? maxAmount;
+    if (maxAmountText.isNotEmpty) {
+      maxAmount = double.tryParse(maxAmountText);
+    }
+    await widget.storageService.saveMaxAmount(maxAmount);
+
+    // Save Token if changed
     final inputText = _tokenController.text;
     if (inputText.isNotEmpty && !inputText.contains('****************')) {
       // Sanitize token: remove quotes, Bearer prefix, and trim.
@@ -53,12 +62,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await widget.storageService.saveToken(sanitizedToken);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Token guardado correctamente')),
+        const SnackBar(content: Text('Configuración guardada correctamente')),
       );
       setState(() {
         _hasToken = true;
         _tokenController.text = '********************************';
       });
+    } else if (inputText.contains('****************')) {
+      // Token wasn't edited, only other settings were saved
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Configuración actualizada')),
+      );
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,14 +114,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
               obscureText: false, // We manually mask it over the text controller so we don't need real obscureText
             ),
             const SizedBox(height: 24),
+            const Text(
+              'Monto Máximo Visible (\$)',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Oculta por seguridad transacciones o abonos que superen este monto (opcional).',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _maxAmountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Ej. 5000',
+              ),
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _saveToken,
+              onPressed: _saveSettings,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF009EE3),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16)
               ),
-              child: Text(_hasToken ? 'Actualizar Token' : 'Guardar Token'),
+              child: Text(_hasToken ? 'Actualizar Configuración' : 'Guardar Configuración'),
             ),
           ],
         ),
@@ -117,6 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _tokenController.dispose();
+    _maxAmountController.dispose();
     super.dispose();
   }
 }
