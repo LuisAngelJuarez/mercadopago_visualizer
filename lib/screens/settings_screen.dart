@@ -3,7 +3,7 @@ import '../services/storage_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final StorageService storageService;
-  
+
   const SettingsScreen({super.key, required this.storageService});
 
   @override
@@ -95,7 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .replaceAll("'", "")
           .replaceAll(RegExp(r'^Bearer\s+', caseSensitive: false), '')
           .trim();
-          
+
       if (sanitizedToken.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -142,64 +142,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: const Color(0xFF009EE3), // Mercado Pago Blue
         foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Token de Acceso (Access Token)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Token de Acceso (Access Token)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Ingresa tu mp_access_token de Mercado Pago. Una vez guardado, por seguridad no podrás visualizarlo, solo actualizarlo.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _tokenController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'APP_USR-...',
+                  ),
+                  obscureText:
+                      false, // We manually mask it over the text controller so we don't need real obscureText
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Monto Máximo Visible (\$)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Oculta por seguridad transacciones o abonos que superen este monto (opcional).',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Nota: si modificas este monto, deberás volver a ingresar el token completo para guardar.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _maxAmountController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Ej. 5000',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _saveSettings,
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF009EE3),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16)),
+                  child: Text(_hasToken
+                      ? 'Actualizar Configuración'
+                      : 'Guardar Configuración'),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Ingresa tu mp_access_token de Mercado Pago. Una vez guardado, por seguridad no podrás visualizarlo, solo actualizarlo.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tokenController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'APP_USR-...',
-              ),
-              obscureText: false, // We manually mask it over the text controller so we don't need real obscureText
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Monto Máximo Visible (\$)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Oculta por seguridad transacciones o abonos que superen este monto (opcional).',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Nota: si modificas este monto, deberás volver a ingresar el token completo para guardar.',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _maxAmountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Ej. 5000',
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _saveSettings,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF009EE3),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16)
-              ),
-              child: Text(_hasToken ? 'Actualizar Configuración' : 'Guardar Configuración'),
-            ),
-          ],
+          ),
         ),
       ),
     );

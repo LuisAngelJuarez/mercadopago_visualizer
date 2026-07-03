@@ -8,11 +8,8 @@ class TransactionsScreen extends StatefulWidget {
   final StorageService storageService;
   final MpApiService apiService;
 
-  const TransactionsScreen({
-    super.key, 
-    required this.storageService,
-    required this.apiService
-  });
+  const TransactionsScreen(
+      {super.key, required this.storageService, required this.apiService});
 
   @override
   State<TransactionsScreen> createState() => _TransactionsScreenState();
@@ -43,7 +40,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
       final maxAmount = await widget.storageService.getMaxAmount();
       final results = await widget.apiService.getTransactions(token);
-      
+
       final now = DateTime.now();
       final todayResults = results.where((tx) {
         // Filter by Max Amount (Security feature)
@@ -59,7 +56,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         if (dateStr == null) return false;
         try {
           final date = DateTime.parse(dateStr).toLocal();
-          return date.year == now.year && date.month == now.month && date.day == now.day;
+          return date.year == now.year &&
+              date.month == now.month &&
+              date.day == now.day;
         } catch (_) {
           return false;
         }
@@ -81,7 +80,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SettingsScreen(storageService: widget.storageService),
+        builder: (context) =>
+            SettingsScreen(storageService: widget.storageService),
       ),
     );
     // Reload transactions when coming back
@@ -109,7 +109,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       appBar: AppBar(
         title: const Text('Transacciones de Hoy'),
         backgroundColor: const Color(0xFFFFE600), // Mercado Pago Yellow
-        foregroundColor: const Color(0xFF2D3277), // Text color for Yellow Background
+        foregroundColor:
+            const Color(0xFF2D3277), // Text color for Yellow Background
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -128,7 +129,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF009EE3)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF009EE3)));
     }
 
     if (_errorMessage != null) {
@@ -147,7 +149,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF009EE3), foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF009EE3),
+                    foregroundColor: Colors.white),
                 onPressed: _navigateToSettings,
                 child: const Text('Ir a Configuración'),
               )
@@ -163,44 +167,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       );
     }
 
-    return ListView.builder(
-      itemCount: _transactions.length,
-      itemBuilder: (context, index) {
-        final tx = _transactions[index];
-        final amount = tx['transaction_amount'];
-        final status = tx['status'];
-        final description = tx['description'] ?? 'Transacción sin descripción';
-        final date = tx['date_created'] ?? '';
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 700),
+        child: ListView.builder(
+          itemCount: _transactions.length,
+          itemBuilder: (context, index) {
+            final tx = _transactions[index];
+            final amount = tx['transaction_amount'];
+            final status = tx['status'];
+            final description =
+                tx['description'] ?? 'Transacción sin descripción';
+            final date = tx['date_created'] ?? '';
 
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 2,
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              backgroundColor: status == 'approved' ? Colors.green.shade100 : Colors.orange.shade100,
-              child: Icon(
-                status == 'approved' ? Icons.check_circle : Icons.pending,
-                color: status == 'approved' ? Colors.green : Colors.orange,
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              elevation: 2,
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(16),
+                leading: CircleAvatar(
+                  backgroundColor: status == 'approved'
+                      ? Colors.green.shade100
+                      : Colors.orange.shade100,
+                  child: Icon(
+                    status == 'approved' ? Icons.check_circle : Icons.pending,
+                    color: status == 'approved' ? Colors.green : Colors.orange,
+                  ),
+                ),
+                title: Text(
+                  description,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(_formatDate(date)),
+                trailing: Text(
+                  _formatCurrency(amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ),
-            ),
-            title: Text(
-              description,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(_formatDate(date)),
-            trailing: Text(
-              _formatCurrency(amount),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
